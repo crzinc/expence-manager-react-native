@@ -1,5 +1,3 @@
-// HomeScreen.js
-
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, FlatList, Animated, StyleSheet, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -85,9 +83,18 @@ const HomeScreen = ({ navigation }) => {
     });
   };
 
+  // Calculate the total amount of transactions
+  const getTotalAmount = () => {
+    return transactions.reduce((sum, tx) => sum + tx.amount, 0).toFixed(2);
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Управление доходами и расходами</Text>
+      <View style={styles.totalContainer}>
+        <Text style={styles.totalLabel}>Общая сумма транзакций:</Text>
+        <Text style={styles.totalAmount}>{getTotalAmount()} ₼</Text>
+      </View>
       <Animated.View style={[styles.buttonContainer, { transform: [{ scale: scaleValue }] }]}>
         <TouchableOpacity style={styles.button} onPress={() => {
           animateButton();
@@ -188,6 +195,27 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontWeight: 'bold',
     color: '#333',
+  },
+  totalContainer: {
+    marginBottom: 16,
+    padding: 16,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  totalLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  totalAmount: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#007bff',
+    marginTop: 8,
   },
   buttonContainer: {
     marginBottom: 16,
