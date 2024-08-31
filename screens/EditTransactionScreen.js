@@ -1,7 +1,9 @@
+//EditTransactionScreen.js
+
 import React from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 
-const BudgetScreen = ({ route, navigation }) => {
+const EditTransactionScreen = ({ route, navigation }) => {
   const { budgets, addBudget } = route.params;
 
   return (
@@ -13,9 +15,9 @@ const BudgetScreen = ({ route, navigation }) => {
         renderItem={({ item }) => (
           <View style={styles.budget}>
             <Text style={styles.category}>{item.category}</Text>
-            <Text style={styles.limit}>Лимит: {item.limit} ₽</Text>
-            <Text style={styles.spent}>Потрачено: {item.spent} ₽</Text>
-            <Text style={styles.remaining}>Осталось: {item.limit - item.spent} ₽</Text>
+            <Text style={styles.limit}>Лимит: {item.limit} ₼</Text>
+            <Text style={styles.spent}>Потрачено: {item.spent} ₼</Text>
+            <Text style={styles.remaining}>Осталось: {item.limit - item.spent} ₼</Text>
           </View>
         )}
       />
@@ -80,4 +82,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default BudgetScreen;
+export default EditTransactionScreen;

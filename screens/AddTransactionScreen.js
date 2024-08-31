@@ -1,3 +1,5 @@
+//AddTransactionScreen.js
+
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import RNPickerSelect from 'react-native-picker-select';

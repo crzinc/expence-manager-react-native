@@ -1,3 +1,5 @@
+//AddBudgetScreen.js
+
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 
@@ -8,11 +10,12 @@ const AddBudgetScreen = ({ route, navigation }) => {
 
   const handleSave = () => {
     if (category && limit) {
-      addBudget({
+      const newBudget = {
         category,
         limit: parseFloat(limit),
         spent: 0,
-      });
+      };
+      addBudget(newBudget);
       navigation.goBack();
     }
   };

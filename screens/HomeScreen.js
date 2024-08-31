@@ -1,80 +1,73 @@
+//HomeScreen.js
+
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image, Animated, Easing } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Animated, Easing } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const HomeScreen = ({ navigation }) => {
   const [transactions, setTransactions] = useState([]);
   const [budgets, setBudgets] = useState([]);
 
-  // Dummy data for testing
-  const sampleBudgets = [
-    { category: 'Еда', limit: 2000, spent: 0 },
-    { category: 'Транспорт', limit: 1000, spent: 0 }
-  ];
-
-  // Dummy data for testing
-  const sampleTransactions = [
-    {
-      id: '1',
-      description: 'Покупка кофе',
-      category: 'Еда',
-      amount: '200',
-      photo: 'https://via.placeholder.com/100'
-    },
-    {
-      id: '2',
-      description: 'Проезд на метро',
-      category: 'Транспорт',
-      amount: '50',
-      photo: 'https://via.placeholder.com/100'
-    }
-  ];
-
-  // Populate with sample data
   useEffect(() => {
-    setTransactions(sampleTransactions);
-    setBudgets(sampleBudgets);
+    // Load stored budgets when the app starts
+    const loadBudgets = async () => {
+      try {
+        const storedBudgets = await AsyncStorage.getItem('budgets');
+        if (storedBudgets) {
+          setBudgets(JSON.parse(storedBudgets));
+        }
+      } catch (error) {
+        console.error('Failed to load budgets:', error);
+      }
+    };
+
+    loadBudgets();
   }, []);
 
-  const handleDelete = (id) => {
-    const deletedTransaction = transactions.find(transaction => transaction.id === id);
-    setTransactions(transactions.filter(transaction => transaction.id !== id));
+  useEffect(() => {
+    // Load stored budgets and transactions when the app starts
+    const loadData = async () => {
+      try {
+        const storedBudgets = await AsyncStorage.getItem('budgets');
+        const storedTransactions = await AsyncStorage.getItem('transactions');
+        if (storedBudgets) {
+          setBudgets(JSON.parse(storedBudgets));
+        }
+        if (storedTransactions) {
+          setTransactions(JSON.parse(storedTransactions));
+        }
+      } catch (error) {
+        console.error('Failed to load data:', error);
+      }
+    };
 
-    if (deletedTransaction) {
-      setBudgets(budgets.map(budget =>
-        budget.category === deletedTransaction.category
-          ? { ...budget, spent: budget.spent - parseFloat(deletedTransaction.amount) }
-          : budget
-      ));
-    }
-  };
+    loadData();
+  }, []);
 
-  const handleAddTransaction = (newTransaction) => {
-    setTransactions([...transactions, newTransaction]);
-    setBudgets(budgets.map(budget =>
-      budget.category === newTransaction.category
-        ? { ...budget, spent: budget.spent + parseFloat(newTransaction.amount) }
-        : budget
-    ));
-  };
-
-  const handleEditTransaction = useCallback((updatedTransaction) => {
-    const previousTransaction = transactions.find(transaction => transaction.id === updatedTransaction.id);
-
-    if (previousTransaction) {
-      setTransactions(transactions.map(transaction =>
-        transaction.id === updatedTransaction.id ? updatedTransaction : transaction
-      ));
-
-      setBudgets(budgets.map(budget =>
-        budget.category === updatedTransaction.category
-          ? { ...budget, spent: budget.spent + parseFloat(updatedTransaction.amount) - parseFloat(previousTransaction.amount) }
-          : budget
-      ));
-    }
-  }, [transactions, budgets]);
+  // Dummy data for testing
+  useEffect(() => {
+    setTransactions([
+      {
+        id: '1',
+        description: 'Покупка кофе',
+        category: 'Еда',
+        amount: '200',
+      },
+      {
+        id: '2',
+        description: 'Проезд на метро',
+        category: 'Транспорт',
+        amount: '50',
+      }
+    ]);
+    setBudgets([
+      { category: 'Еда', limit: 2000, spent: 200 },
+      { category: 'Транспорт', limit: 1000, spent: 50 }
+    ]);
+  }, []);
 
   const handleAddBudget = (newBudget) => {
-    setBudgets([...budgets, newBudget]);
+    setBudgets(prevBudgets => [...prevBudgets, newBudget]);
   };
 
   // Animation
@@ -104,7 +97,7 @@ const HomeScreen = ({ navigation }) => {
         <TouchableOpacity style={styles.button} onPress={() => {
           animateButton();
           navigation.navigate('AddTransaction', {
-            addTransaction: handleAddTransaction
+            addTransaction: (newTransaction) => setTransactions([...transactions, newTransaction])
           });
         }}>
           <Text style={styles.buttonText}>Добавить транзакцию</Text>
@@ -129,16 +122,15 @@ const HomeScreen = ({ navigation }) => {
             <View style={styles.transactionDetails}>
               <Text style={styles.description}>{item.description}</Text>
               <Text style={styles.category}>{item.category}</Text>
-              <Text style={styles.amount}>{item.amount} ₽</Text>
-              {item.photo && <Image source={{ uri: item.photo }} style={styles.image} />}
+              <Text style={styles.amount}>{item.amount} ₼</Text>
             </View>
             <View style={styles.transactionActions}>
-              <TouchableOpacity style={styles.actionButton} onPress={() => handleDelete(item.id)}>
+              <TouchableOpacity style={styles.actionButton} onPress={() => setTransactions(transactions.filter(transaction => transaction.id !== item.id))}>
                 <Text style={styles.deleteButton}>Удалить</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('EditTransaction', {
                 transaction: item,
-                updateTransaction: handleEditTransaction
+                updateTransaction: (updatedTransaction) => setTransactions(transactions.map(transaction => transaction.id === updatedTransaction.id ? updatedTransaction : transaction))
               })}>
                 <Text style={styles.editButton}>Редактировать</Text>
               </TouchableOpacity>
@@ -149,7 +141,6 @@ const HomeScreen = ({ navigation }) => {
     </View>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {
@@ -204,12 +195,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
-  },
-  image: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-    marginVertical: 10,
   },
   transactionActions: {
     flexDirection: 'row',
