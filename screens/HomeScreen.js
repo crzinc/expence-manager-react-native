@@ -1,40 +1,27 @@
-//HomeScreen.js
+// HomeScreen.js
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Animated, Easing } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, FlatList, Animated, StyleSheet, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import moment from 'moment';
 
 const HomeScreen = ({ navigation }) => {
   const [transactions, setTransactions] = useState([]);
   const [budgets, setBudgets] = useState([]);
+  const [forecast, setForecast] = useState([]);
+  const scaleValue = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // Load stored budgets when the app starts
-    const loadBudgets = async () => {
-      try {
-        const storedBudgets = await AsyncStorage.getItem('budgets');
-        if (storedBudgets) {
-          setBudgets(JSON.parse(storedBudgets));
-        }
-      } catch (error) {
-        console.error('Failed to load budgets:', error);
-      }
-    };
-
-    loadBudgets();
-  }, []);
-
-  useEffect(() => {
-    // Load stored budgets and transactions when the app starts
+    // Load stored transactions and budgets when the app starts
     const loadData = async () => {
       try {
-        const storedBudgets = await AsyncStorage.getItem('budgets');
         const storedTransactions = await AsyncStorage.getItem('transactions');
-        if (storedBudgets) {
-          setBudgets(JSON.parse(storedBudgets));
-        }
+        const storedBudgets = await AsyncStorage.getItem('budgets');
         if (storedTransactions) {
           setTransactions(JSON.parse(storedTransactions));
+        }
+        if (storedBudgets) {
+          setBudgets(JSON.parse(storedBudgets));
         }
       } catch (error) {
         console.error('Failed to load data:', error);
@@ -44,50 +31,58 @@ const HomeScreen = ({ navigation }) => {
     loadData();
   }, []);
 
-  // Dummy data for testing
   useEffect(() => {
-    setTransactions([
-      {
-        id: '1',
-        description: 'Покупка кофе',
-        category: 'Еда',
-        amount: '200',
-      },
-      {
-        id: '2',
-        description: 'Проезд на метро',
-        category: 'Транспорт',
-        amount: '50',
-      }
-    ]);
-    setBudgets([
-      { category: 'Еда', limit: 2000, spent: 200 },
-      { category: 'Транспорт', limit: 1000, spent: 50 }
-    ]);
-  }, []);
+    calculateForecast();
+  }, [transactions]);
 
-  const handleAddBudget = (newBudget) => {
-    setBudgets(prevBudgets => [...prevBudgets, newBudget]);
+  const calculateForecast = () => {
+    if (transactions.length === 0) {
+      setForecast([]);
+      return;
+    }
+
+    const categories = transactions.reduce((acc, transaction) => {
+      if (!acc[transaction.category]) {
+        acc[transaction.category] = [];
+      }
+      acc[transaction.category].push(transaction);
+      return acc;
+    }, {});
+
+    const predictions = Object.keys(categories).map(category => {
+      const categoryTransactions = categories[category];
+      if (categoryTransactions.length === 0) return { category, prediction: 0 };
+
+      const total = categoryTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+      const average = total / categoryTransactions.length;
+
+      // Predicting for the rest of the month
+      const now = moment();
+      const daysInMonth = moment().daysInMonth();
+      const daysLeft = daysInMonth - now.date();
+      const forecastValue = average * daysLeft;
+
+      return {
+        category,
+        prediction: forecastValue.toFixed(2),
+      };
+    });
+
+    setForecast(predictions);
   };
 
-  // Animation
-  const scaleValue = new Animated.Value(1);
-
   const animateButton = () => {
-    Animated.sequence([
-      Animated.timing(scaleValue, {
-        toValue: 1.1,
-        duration: 300,
-        easing: Easing.ease,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleValue, {
+    Animated.spring(scaleValue, {
+      toValue: 1.1,
+      friction: 2,
+      useNativeDriver: true,
+    }).start(() => {
+      Animated.spring(scaleValue, {
         toValue: 1,
-        duration: 300,
-        easing: Easing.ease,
+        friction: 2,
         useNativeDriver: true,
-      }),
-    ]).start();
+      }).start();
+    });
   };
 
   return (
@@ -97,7 +92,11 @@ const HomeScreen = ({ navigation }) => {
         <TouchableOpacity style={styles.button} onPress={() => {
           animateButton();
           navigation.navigate('AddTransaction', {
-            addTransaction: (newTransaction) => setTransactions([...transactions, newTransaction])
+            addTransaction: (newTransaction) => {
+              const updatedTransactions = [...transactions, newTransaction];
+              setTransactions(updatedTransactions);
+              AsyncStorage.setItem('transactions', JSON.stringify(updatedTransactions));
+            }
           });
         }}>
           <Text style={styles.buttonText}>Добавить транзакцию</Text>
@@ -108,12 +107,32 @@ const HomeScreen = ({ navigation }) => {
           animateButton();
           navigation.navigate('Budget', {
             budgets,
-            addBudget: handleAddBudget
+            addBudget: (newBudget) => {
+              const updatedBudgets = [...budgets, newBudget];
+              setBudgets(updatedBudgets);
+              AsyncStorage.setItem('budgets', JSON.stringify(updatedBudgets));
+            },
+            updateBudgets: (updatedBudgets) => {
+              setBudgets(updatedBudgets);
+              AsyncStorage.setItem('budgets', JSON.stringify(updatedBudgets));
+            }
           });
         }}>
           <Text style={styles.buttonText}>Управление бюджетами</Text>
         </TouchableOpacity>
       </Animated.View>
+      <View style={styles.forecastContainer}>
+        <Text style={styles.forecastTitle}>Прогнозирование финансов</Text>
+        {forecast.length > 0 ? (
+          forecast.map(item => (
+            <View key={item.category} style={styles.forecastItem}>
+              <Text>{item.category}: {item.prediction} ₼ (прогноз)</Text>
+            </View>
+          ))
+        ) : (
+          <Text>Недостаточно данных для прогнозирования.</Text>
+        )}
+      </View>
       <FlatList
         data={transactions}
         keyExtractor={(item) => item.id}
@@ -125,13 +144,29 @@ const HomeScreen = ({ navigation }) => {
               <Text style={styles.amount}>{item.amount} ₼</Text>
             </View>
             <View style={styles.transactionActions}>
-              <TouchableOpacity style={styles.actionButton} onPress={() => setTransactions(transactions.filter(transaction => transaction.id !== item.id))}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => {
+                  const updatedTransactions = transactions.filter(transaction => transaction.id !== item.id);
+                  setTransactions(updatedTransactions);
+                  AsyncStorage.setItem('transactions', JSON.stringify(updatedTransactions));
+                }}
+              >
                 <Text style={styles.deleteButton}>Удалить</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('EditTransaction', {
-                transaction: item,
-                updateTransaction: (updatedTransaction) => setTransactions(transactions.map(transaction => transaction.id === updatedTransaction.id ? updatedTransaction : transaction))
-              })}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => navigation.navigate('EditTransaction', {
+                  transaction: item,
+                  updateTransaction: (updatedTransaction) => {
+                    const updatedTransactions = transactions.map(transaction =>
+                      transaction.id === updatedTransaction.id ? updatedTransaction : transaction
+                    );
+                    setTransactions(updatedTransactions);
+                    AsyncStorage.setItem('transactions', JSON.stringify(updatedTransactions));
+                  }
+                })}
+              >
                 <Text style={styles.editButton}>Редактировать</Text>
               </TouchableOpacity>
             </View>
@@ -155,19 +190,34 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   buttonContainer: {
-    marginVertical: 10,
+    marginBottom: 16,
   },
   button: {
     backgroundColor: '#007bff',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
-    marginVertical: 8,
+    marginTop: 16,
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  forecastContainer: {
+    marginBottom: 16,
+  },
+  forecastTitle: {
+    fontSize: 20,
+    marginBottom: 8,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  forecastItem: {
+    padding: 8,
+    backgroundColor: '#fff',
+    borderRadius: 4,
+    marginBottom: 4,
   },
   transaction: {
     padding: 16,
@@ -188,12 +238,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   category: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#666',
   },
   amount: {
     fontSize: 16,
-    fontWeight: 'bold',
     color: '#333',
   },
   transactionActions: {
@@ -201,14 +250,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   actionButton: {
-    marginHorizontal: 8,
+    padding: 8,
+    borderRadius: 4,
+    marginHorizontal: 4,
   },
   deleteButton: {
-    color: 'red',
+    backgroundColor: 'red',
+    color: '#fff',
     fontWeight: 'bold',
   },
   editButton: {
-    color: 'blue',
+    backgroundColor: '#007bff',
+    color: '#fff',
     fontWeight: 'bold',
   },
 });

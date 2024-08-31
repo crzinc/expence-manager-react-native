@@ -8,6 +8,7 @@ import AddTransactionScreen from './screens/AddTransactionScreen';
 import EditTransactionScreen from './screens/EditTransactionScreen';
 import BudgetScreen from './screens/BudgetScreen';
 import AddBudgetScreen  from './screens/AddBudgetScreen';
+import EditBudgetScreen from './screens/EditBudgetScreen';
 
 
 const Stack = createStackNavigator();
@@ -21,6 +22,8 @@ const App = () => {
         <Stack.Screen name="EditTransaction" component={EditTransactionScreen} />
         <Stack.Screen name="Budget" component={BudgetScreen} />
         <Stack.Screen name="AddBudget" component={AddBudgetScreen} />
+        <Stack.Screen name="EditBudget" component={EditBudgetScreen} />
+
       </Stack.Navigator>
     </NavigationContainer>
   );

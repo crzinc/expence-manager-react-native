@@ -1,9 +1,48 @@
-//BudgetScreen.js
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 const BudgetScreen = ({ route, navigation }) => {
-  const { budgets, addBudget } = route.params;
+  const [budgets, setBudgets] = useState([]);
+
+  // Load budgets from AsyncStorage when the component mounts
+  const loadBudgets = async () => {
+    try {
+      const storedBudgets = await AsyncStorage.getItem('budgets');
+      if (storedBudgets) {
+        setBudgets(JSON.parse(storedBudgets));
+      }
+    } catch (error) {
+      console.error('Failed to load budgets:', error);
+    }
+  };
+
+  // Save budgets to AsyncStorage
+  const saveBudgets = async (updatedBudgets) => {
+    try {
+      await AsyncStorage.setItem('budgets', JSON.stringify(updatedBudgets));
+      setBudgets(updatedBudgets);
+    } catch (error) {
+      console.error('Failed to save budgets:', error);
+    }
+  };
+
+  // Handle budget deletion
+  const handleDeleteBudget = (category) => {
+    const updatedBudgets = budgets.filter(budget => budget.category !== category);
+    saveBudgets(updatedBudgets);
+  };
+
+  // Add a new budget and save it to AsyncStorage
+  const handleAddBudget = (newBudget) => {
+    const updatedBudgets = [...budgets, newBudget];
+    saveBudgets(updatedBudgets);
+  };
+
+  // Navigate to the AddBudget screen with the handleAddBudget function
+  useEffect(() => {
+    loadBudgets();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -17,10 +56,35 @@ const BudgetScreen = ({ route, navigation }) => {
             <Text style={styles.limit}>Лимит: {item.limit} ₼</Text>
             <Text style={styles.spent}>Потрачено: {item.spent} ₼</Text>
             <Text style={styles.remaining}>Осталось: {item.limit - item.spent} ₼</Text>
+            <View style={styles.actions}>
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => navigation.navigate('EditBudget', {
+                  budget: item,
+                  updateBudget: (updatedBudget) => {
+                    const updatedBudgets = budgets.map(b => 
+                      b.category === updatedBudget.category ? updatedBudget : b
+                    );
+                    saveBudgets(updatedBudgets);
+                  }
+                })}
+              >
+                <Text style={styles.actionText}>Редактировать</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => handleDeleteBudget(item.category)}
+              >
+                <Text style={styles.deleteButtonText}>Удалить</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       />
-      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('AddBudget', { addBudget })}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate('AddBudget', { addBudget: handleAddBudget })}
+      >
         <Text style={styles.buttonText}>Добавить бюджет</Text>
       </TouchableOpacity>
     </View>
@@ -77,6 +141,33 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  editButton: {
+    backgroundColor: '#007bff',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+  },
+  deleteButton: {
+    backgroundColor: 'red',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+  },
+  actionText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontSize: 14,
     fontWeight: 'bold',
   },
 });
