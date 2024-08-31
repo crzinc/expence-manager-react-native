@@ -1,44 +1,53 @@
-// AddBudgetScreen.js
-
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AddBudgetScreen = ({ route, navigation }) => {
-  const { addBudget } = route.params;
-  const [category, setCategory] = useState(''); // Начальное значение может быть пустым
+  const { addBudget, updateCategories } = route.params;
+  const [category, setCategory] = useState('');
   const [limit, setLimit] = useState('');
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (category && limit) {
       const newBudget = {
         category,
         limit: parseFloat(limit),
         spent: 0,
       };
+
+      // Save new budget
       addBudget(newBudget);
+
+      // Update categories
+      try {
+        const storedBudgets = await AsyncStorage.getItem('budgets');
+        const budgets = storedBudgets ? JSON.parse(storedBudgets) : [];
+        const updatedCategories = [...new Set([...budgets.map(b => b.category), category])];
+        await AsyncStorage.setItem('categories', JSON.stringify(updatedCategories));
+
+        // Call the updateCategories function from AddTransactionScreen
+        if (updateCategories) {
+          updateCategories(updatedCategories);
+        }
+      } catch (error) {
+        console.error('Failed to save categories:', error);
+      }
+
       navigation.goBack();
+    } else {
+      Alert.alert('Ошибка', 'Пожалуйста, заполните все поля.');
     }
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Добавить бюджет</Text>
-      
-      <Text style={styles.label}>Категория</Text>
-      <Picker
-        selectedValue={category}
-        onValueChange={(itemValue) => setCategory(itemValue)}
-        style={styles.picker}
-      >
-        <Picker.Item label="Выберите категорию" value="" />
-        <Picker.Item label="Еда" value="еда" />
-        <Picker.Item label="Транспорт" value="транспорт" />
-        <Picker.Item label="Развлечение" value="развлечение" />
-        <Picker.Item label="Шоппинг" value="шоппинг" />
-        <Picker.Item label="Прочее" value="прочее" />
-      </Picker>
-
+      <TextInput
+        style={styles.input}
+        placeholder="Категория"
+        value={category}
+        onChangeText={setCategory}
+      />
       <TextInput
         style={styles.input}
         placeholder="Лимит"
@@ -69,13 +78,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 8,
     color: '#333',
-  },
-  picker: {
-    height: 50,
-    width: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    marginBottom: 16,
   },
   input: {
     backgroundColor: '#fff',

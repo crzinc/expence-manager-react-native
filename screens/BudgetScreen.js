@@ -39,6 +39,11 @@ const BudgetScreen = ({ route, navigation }) => {
     saveBudgets(updatedBudgets);
   };
 
+  // Update budgets when transactions are added
+  const updateBudgets = (updatedBudgets) => {
+    saveBudgets(updatedBudgets);
+  };
+
   // Navigate to the AddBudget screen with the handleAddBudget function
   useEffect(() => {
     loadBudgets();

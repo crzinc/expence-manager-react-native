@@ -1,28 +1,42 @@
-//EditTransactionScreen.js
-
-import React from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+// EditTransactionScreen.js
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 
 const EditTransactionScreen = ({ route, navigation }) => {
-  const { budgets, addBudget } = route.params;
+  const { transaction, updateTransaction } = route.params;
+  const [description, setDescription] = useState(transaction.description);
+  const [amount, setAmount] = useState(transaction.amount.toString());
+
+  const handleSave = () => {
+    if (description && amount) {
+      const updatedTransaction = {
+        ...transaction,
+        description,
+        amount: parseFloat(amount),
+      };
+      updateTransaction(updatedTransaction);
+      navigation.goBack();
+    }
+  };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Управление бюджетами</Text>
-      <FlatList
-        data={budgets}
-        keyExtractor={(item) => item.category}
-        renderItem={({ item }) => (
-          <View style={styles.budget}>
-            <Text style={styles.category}>{item.category}</Text>
-            <Text style={styles.limit}>Лимит: {item.limit} ₼</Text>
-            <Text style={styles.spent}>Потрачено: {item.spent} ₼</Text>
-            <Text style={styles.remaining}>Осталось: {item.limit - item.spent} ₼</Text>
-          </View>
-        )}
+      <Text style={styles.title}>Редактировать транзакцию</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Описание"
+        value={description}
+        onChangeText={setDescription}
       />
-      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('AddBudget', { addBudget })}>
-        <Text style={styles.buttonText}>Добавить бюджет</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Сумма"
+        keyboardType="numeric"
+        value={amount}
+        onChangeText={setAmount}
+      />
+      <TouchableOpacity style={styles.button} onPress={handleSave}>
+        <Text style={styles.buttonText}>Сохранить</Text>
       </TouchableOpacity>
     </View>
   );
@@ -40,40 +54,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
-  budget: {
-    padding: 16,
+  input: {
     backgroundColor: '#fff',
+    padding: 12,
     borderRadius: 8,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  category: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  limit: {
+    marginBottom: 16,
     fontSize: 16,
-    color: '#666',
-  },
-  spent: {
-    fontSize: 16,
-    color: '#333',
-  },
-  remaining: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#007bff',
   },
   button: {
     backgroundColor: '#007bff',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
-    marginTop: 16,
   },
   buttonText: {
     color: '#fff',

@@ -17,13 +17,11 @@ const EditBudgetScreen = ({ route, navigation }) => {
       const updatedBudget = {
         category,
         limit: parseFloat(limit),
-        spent: budget.spent, // Keep the existing spent value
+        spent: budget.spent,
       };
       
-      // Update budget
       updateBudget(updatedBudget);
 
-      // Save updated budgets
       try {
         const storedBudgets = await AsyncStorage.getItem('budgets');
         const budgets = storedBudgets ? JSON.parse(storedBudgets) : [];
